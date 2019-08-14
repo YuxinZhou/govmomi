@@ -29,6 +29,11 @@ import (
 	"github.com/vmware/govmomi/vim25/soap"
 )
 
+const (
+	vsanPath      = "/vsanHealth"
+	vsanNamespace = "/vsan"
+)
+
 // getEnvString returns string from environment variable.
 func getEnvString(v string, def string) string {
 	r := os.Getenv(v)
@@ -65,9 +70,7 @@ var urlDescription = fmt.Sprintf("ESX or vCenter URL [%s]", envURL)
 var urlFlag = flag.String("url", getEnvString(envURL, "https://<user>:<pwd>@<vcenter-ip>"+vim25.Path), urlDescription)
 
 var insecureDescription = fmt.Sprintf("Don't verify the server's certificate chain [%s]", envInsecure)
-
-//var insecureFlag = flag.Bool("insecure", getEnvBool(envInsecure, false), insecureDescription)
-var insecureFlag = flag.Bool("insecure", true, insecureDescription)
+var insecureFlag = flag.Bool("insecure", getEnvBool(envInsecure, true), insecureDescription)
 
 func processOverride(u *url.URL) {
 	envUsername := os.Getenv(envUserName)
@@ -116,8 +119,12 @@ func NewVSANClient(ctx context.Context) (*soap.Client, error) {
 
 	// Connect and log in to ESX or vCenter
 	govmomiClient, err := govmomi.NewClient(ctx, u, *insecureFlag)
+	if err != nil {
+		return nil, err
+	}
 
-	soapClient := govmomiClient.Client.Client.NewServiceClient("/vsanHealth", "vsan")
+	// Create vSAN client
+	soapClient := govmomiClient.Client.Client.NewServiceClient(vsanPath, vsanNamespace)
 
 	return soapClient, nil
 }
